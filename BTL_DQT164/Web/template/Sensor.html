@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor</title>
+    <link rel="stylesheet" href="Sensor.css">
+    <script src="/IOT/random.js"></script>
+</head>
+<body>
+    <div class = "container">
+        <div class = "wapper">
+            <ul class = "menu">
+                <li class = "list">
+                    <a href="Profile.html">
+                        <span class = "icon">
+                            <ion-icon name="person-outline"></ion-icon>
+                        </span>
+                        <span class = "text">Profile</span>
+                    </a>
+                </li>
+                <li class = "list">
+                    <a href="Dashboard.html">
+                        <span class = "icon">
+                            <ion-icon name="bar-chart-outline"></ion-icon>
+                        </span>  
+                        <span class = "text">Dashboards</span>                  
+                    </a>
+                </li>
+                <li class = "list">
+                    <a href="Sensor.html">
+                        <span class = "icon">
+                            <ion-icon name="radio-outline"></ion-icon>
+                        </span>  
+                        <span class = "text">Sensor</span>                  
+                    </a>
+                </li>
+                <li class = "list">
+                    <a href="History.html">
+                        <span class = "icon">
+                            <ion-icon name="time-outline"></ion-icon>
+                        </span>  
+                        <span class = "text">History</span>                  
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class = "main">
+        <table border="1" id = "tbl">
+            <tr>
+                <th>Ánh sáng</th>
+                <th>Thời điểm</th>
+            </tr>
+        </table>
+    </div>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script>
+        let list = document.querySelectorAll('.wapper .list');
+        function activeLink(){
+            list.forEach((item) =>
+            item.classList.remove('hovered'));
+            this.classList.add('hovered');
+        }
+        list.forEach((item) => 
+        item.addEventListener('mouseover', activeLink));
+    </script>
+
+    <script>
+        function fetchData() {
+        fetch('http://localhost:3000/getSensor') // Địa chỉ của máy chủ Node.js
+        .then(response => response.json())
+        .then(data => {
+            const table = document.getElementById('tbl');
+            table.innerHTML = '<tr><th>Ánh sáng</th><th>Thời điểm</th></tr>';
+            data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.light}</td><td>${row.time}</td>`; 
+            table.appendChild(tr);
+            });
+        })
+        .catch(error => console.error('Lỗi:', error));
+        }
+
+        setInterval(fetchData, 500);
+    </script>
+</body>
+</html>

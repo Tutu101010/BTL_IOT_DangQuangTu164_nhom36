@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="Dashboard.css" >
+    <script src="https://github.com/eclipse/paho.mqtt.javascript" type="text/javascript"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class = "container">
+        <div class = "wapper">
+            <ul class = "menu">
+                <li class = "list">
+                    <a href="Profile.html">
+                        <span class = "icon">
+                            <ion-icon name="person-outline"></ion-icon>
+                        </span>
+                        <span class = "text">Profile</span>
+                    </a>
+                </li>
+                <li class = "list">
+                    <a href="Dashboard.html">
+                        <span class = "icon">
+                            <ion-icon name="bar-chart-outline"></ion-icon>
+                        </span>  
+                        <span class = "text">Dashboards</span>                  
+                    </a>
+                </li>
+                <li class = "list">
+                    <a href="Sensor.html">
+                        <span class = "icon">
+                            <ion-icon name="radio-outline"></ion-icon>
+                        </span>  
+                        <span class = "text">Sensor</span>                  
+                    </a>
+                </li>
+                <li class = "list">
+                    <a href="History.html">
+                        <span class = "icon">
+                            <ion-icon name="time-outline"></ion-icon>
+                        </span>  
+                        <span class = "text">History</span>                  
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class = "main">
+        <div class = "infor">
+            <div class = "light" id = "l">
+                <div class = "type">Ánh sáng</div>
+                <div class = "icon0"><ion-icon name="sunny-outline"></ion-icon></div>
+                <div id = 'nlight' class = "nlight"></div>
+            </div>
+           
+            <div class = "led">
+                <div class = "icon1">
+                    <img class="light-status" id="sts1" src="./picture/lightOn.jpg" width="100" height="125">
+                </div>
+                <div class ="switch">
+                    <button class="btn" id="ledOn">ON</button>
+                    <button class="btn" id="ledOff">OFF</button>
+                </div>
+                <div id = 'ledC'></div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+    <script>
+        let list = document.querySelectorAll('.wapper .list');
+        function activeLink(){
+            list.forEach((item) =>
+            item.classList.remove('hovered'));
+            this.classList.add('hovered');
+        }
+        list.forEach((item) => 
+        item.addEventListener('mouseover', activeLink));
+    </script>
+    <script>
+        let timeData = [];
+        let temperatureData = [];
+        let humidityData = [];
+        let lightData = [];
+
+        //Lấy dữ liệu cho biểu đồ
+        function fetchData() {
+            fetch('http://localhost:3000/getSensor') // Địa chỉ của máy chủ Node.js
+            .then(response => response.json())
+            .then(data => {
+                const nlight = document.getElementById('nlight');
+                nlight.textContent =`${data[0].light} Lux`;
+                const l = document.getElementById('l');
+                if (data[0].light > 1000) {
+                    l.style.backgroundColor = 'rgba(255, 255, 58, 1)';
+                } else if (data[0].light > 500) {
+                    l.style.backgroundColor = 'rgba(235, 232, 58, 0.7)';
+                } else {
+                    l.style.backgroundColor = 'rgba(0, 0, 47, 1)';
+                }
+
+                const chartData = data.slice(0, 10);
+
+                chartData.forEach(row => {
+                    timeData.push(row.time);
+                    lightData.push(row.light);                        
+                    const maxDataPoints = 10;
+                    if (timeData.length > maxDataPoints) {
+                        timeData.shift();
+                        lightData.shift();
+                    }
+                })
+
+                
+                const trace3 = {
+                    x: timeData,
+                    y: lightData,
+                    mode: 'line',
+                    line: {
+                        color: 'green'
+                    },
+                    name: 'Độ sáng',
+                };
+
+                const dataChart = [trace3];
+
+                const layout = {
+                    title: 'Biểu đồ ánh sáng',
+                    xaxis: {
+                        title: 'Thời gian'
+                    },
+                    yaxis: {
+                        title: 'Giá trị'
+                    }
+                };
+
+                Plotly.newPlot('chart', dataChart, layout);
+            })
+            .catch(error => console.error('Lỗi:', error));
+        }
+        const ledC = document.getElementById('ledC');
+        setInterval(fetchData, 500);
+
+        let lC;
+
+        fetch('http://localhost:3000/getHistory') 
+            .then(response => response.json())
+            .then(data => {
+                if (data[0].led === 'ON') {
+                    led.src = './picture/lightOn.jpg';
+                } else {
+                    led.src = './picture/lightOff.jpg';
+                }
+                
+                // ledC.innerText = data[0].ledc;
+                // lC = data[0].ledc;
+            })
+            .catch(error => console.error('Lỗi:', error));
+
+        function sendData(command, imageElement) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', `http://localhost:3000/control?command=${command}`, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        if(command === '1' || command === '0')
+                            toggleLight(imageElement, command === '1' ? 'on' : 'off');
+                    } else {
+                        console.error('Error:', xhr.statusText);
+                    }
+                }
+            }
+            xhr.send();
+        }
+        const ledOn = document.getElementById('ledOn');
+        const ledOff = document.getElementById('ledOff');
+        const led = document.getElementById('sts1');
+        const status2 = document.getElementById('sts2');
+        //Đổi ảnh khi bật tắt đèn
+        function toggleLight(imageElement, command) {
+            if (command === 'on') {
+                imageElement.src = './picture/lightOn.jpg';
+            } else if (command === 'off') {
+                imageElement.src = './picture/lightOff.jpg';
+            }
+        }
+        
+
+        //Xử lý khi ấn nút
+        ledOn.addEventListener('click', (event) => {
+            lC += 1;
+            // ledC.innerText = lC;
+            event.stopPropagation();
+            sendData('1', led);
+        });
+
+        ledOff.addEventListener('click', (event) => {
+            lC += 1;
+            // ledC.innerText = lC;
+            event.stopPropagation();
+            sendData('0', led);
+        });
+
+    </script>
+</body>
+</html>
